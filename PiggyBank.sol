@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 contract BaseMultiPiggyBank {
-    
     struct Account {
         uint256 balance;
         uint256 unlockTime;
@@ -18,13 +17,10 @@ contract BaseMultiPiggyBank {
         require(_durationInSeconds > 0, "Somoy obossoi 0 er beshi hote hobe!");
 
         Account storage userAccount = accounts[msg.sender];
-        
-        if (userAccount.balance == 0) {
-            userAccount.unlockTime = block.timestamp + _durationInSeconds;
-        } else {
-            userAccount.unlockTime = userAccount.unlockTime + _durationInSeconds;
-        }
 
+        // ফিক্স: প্রতিবার ডিপোজিটের সময় বর্তমান সময় থেকে নতুন লক টাইম সেট হবে
+        userAccount.unlockTime = block.timestamp + _durationInSeconds;
+        
         userAccount.balance += msg.value;
 
         emit Deposited(msg.sender, msg.value, userAccount.unlockTime);
@@ -32,14 +28,15 @@ contract BaseMultiPiggyBank {
 
     function withdraw() external {
         Account storage userAccount = accounts[msg.sender];
-
         require(userAccount.balance > 0, "Apnar ekhane kono taka nei!");
         require(block.timestamp >= userAccount.unlockTime, "Ekhono apnar loking somoy sesh hoy ni!");
 
         uint256 amountToWithdraw = userAccount.balance;
         userAccount.balance = 0;
 
-        payable(msg.sender).transfer(amountToWithdraw);
+        // .transfer এর বদলে আধুনিক ও নিরাপদ .call ব্যবহার করা হয়েছে
+        (bool success, ) = payable(msg.sender).call{value: amountToWithdraw}("");
+        require(success, "Transfer baddho hoyeche!");
 
         emit Withdrawn(msg.sender, amountToWithdraw);
     }
