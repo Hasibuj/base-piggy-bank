@@ -18,7 +18,7 @@ contract BaseMultiPiggyBank {
 
         Account storage userAccount = accounts[msg.sender];
 
-        // ফিক্স: প্রতিবার ডিপোজিটের সময় বর্তমান সময় থেকে নতুন লক টাইম সেট হবে
+        // FIX: Reset unlock time based on current timestamp on every new deposit to prevent forever-locking bug
         userAccount.unlockTime = block.timestamp + _durationInSeconds;
         
         userAccount.balance += msg.value;
@@ -34,7 +34,7 @@ contract BaseMultiPiggyBank {
         uint256 amountToWithdraw = userAccount.balance;
         userAccount.balance = 0;
 
-        // .transfer এর বদলে আধুনিক ও নিরাপদ .call ব্যবহার করা হয়েছে
+        // Modern and secure way to transfer ETH instead of using .transfer()
         (bool success, ) = payable(msg.sender).call{value: amountToWithdraw}("");
         require(success, "Transfer baddho hoyeche!");
 
